@@ -1,4 +1,6 @@
 /* Начало: заставка, пробуждение, выбор героя. */
+/* Что герой и так знает о себе: эти флаги остальные получают только в разговоре с ним. */
+const SELF={rusya:{rusyaTruth:1,contract:1},bogdan:{crabStance:1},yarik:{evidence:1},ilya:{ilyaWhy:1},misha:{evidence:1}};
 Game.add({
 title:{place:['Пасека «Жужжащий Яр»','Кто пчёлок уважает'],pal:'start',bg:'hub',npc:null,
  text:[
@@ -34,8 +36,8 @@ start2:{place:['Пасека «Жужжащий Яр»','Гул'],
  opts:[{t:'Встать. Вспомнить, кто ты из чата.',go:'pick'}]},
 
 pick:{place:['Пасека «Жужжащий Яр»','Кто ты'],pal:'pick',
- text:[['n','В списке участников пятеро. Один из них только что лежал в клевере. Остальные где-то на пасеке — и одновременно в чате, как это у них принято.']],
- opts:()=>Object.keys(H).map(k=>({hero:k,t:H[k].n+'. '+H[k].d,fx(){S.hero=k;for(const s in H[k].b)S.sk[s]=H[k].b[s]},go:'wake'}))},
+ text:[['n','В списке участников пятеро. Один из них только что лежал в клевере. Остальные четверо где-то на пасеке — и одновременно в чате, как это у них принято. К ним ты и пойдёшь.']],
+ opts:()=>Object.keys(H).map(k=>({hero:k,t:H[k].n+'. '+H[k].d,fx(){S.hero=k;for(const s in H[k].b)S.sk[s]=H[k].b[s];Object.assign(S.f,SELF[k])},go:'wake'}))},
 
 wake:{place:['Пасека «Жужжащий Яр»','Подъём'],pal:'hub',bg:'hub',
  text:[

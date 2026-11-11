@@ -39,15 +39,23 @@ function say(k,t,passive){
     if(passive)p.append(el('span','ptag','[чутьё '+passive+'] —'))}
   p.append(document.createTextNode(t));put(p);
 }
+function gtime(){const m=Math.max(9*60+12+(S.t||0)*17,(S.f.chatMin||0)+1);S.f.chatMin=m;return String(Math.floor(m/60)%24).padStart(2,'0')+':'+String(m%60).padStart(2,'0')}
 function chatMsg(from,text){
-  if(from==='sys'){put(el('p','chatsys',text));S.chat.push(['sys',text])}
-  else{if(from===S.hero){const ks=Object.keys(H).filter(k=>k!==S.hero);from=ks[text.length%ks.length]}
-    put(chatNode(from,text));S.chat.push([from,text]);sfx.chat(delay-260)}
+  const tm=gtime();
+  if(from==='sys'){put(el('p','chatsys',text));S.chat.push(['sys',text,tm])}
+  else{put(vkMsg(from,text,tm,true,true,'inlog'));S.chat.push([from,text,tm]);sfx.chat(delay-260)}
   if(S.chat.length>80)S.chat.splice(0,S.chat.length-80);
 }
-function chatNode(from,text){const d=el('div','chatmsg');const av=el('span','av',H[from].n[0]);
-  av.style.setProperty('--a',H[from].c[0]);av.style.setProperty('--b',H[from].c[1]);
-  const b=el('div','bub');b.append(el('b','',H[from].n),document.createTextNode(text));d.append(av,b);return d}
+function vkAva(k){const a=el('span','vkava');if(ART['p_'+k])a.style.backgroundImage='url("'+ART['p_'+k]+'")';
+  else{a.textContent=H[k].n[0];a.style.background='linear-gradient(135deg,'+H[k].c[0]+','+H[k].c[1]+')'}return a}
+function vkMsg(from,text,tm,showName,showAva,extra){
+  const mine=from===S.hero,row=el('div','vkrow'+(mine?' mine':'')+(extra?' '+extra:''));
+  if(!mine)row.append(showAva?vkAva(from):el('span','vkava ghost'));
+  const b=el('div','vkbub'+(showAva?' tail':''));
+  if(showName&&!mine){const nm=el('b','vkname',H[from].n);b.append(nm)}
+  const tx=el('span','vktext',text);b.append(tx);
+  const t=el('span','vktime',(tm||'')+(mine?'  ✓✓':''));b.append(t);row.append(b);return row}
+function chatNode(from,text){return vkMsg(from,text,'',true,true)}
 /* Реплика: [кто, текст, условие?]. Кто: 'n' рассказчик, 'you', id героя, id навыка,
    'навык>3' — пассивная (нужен уровень 3), 'chat:id' — сообщение в чате, 'chat:sys' — системное. */
 function emit(l){
@@ -212,13 +220,16 @@ function finish(id,br){
 
 /* ---------- панели ---------- */
 let panelOpen=null;
-function closePanel(){$('panel').hidden=true;panelOpen=null;document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'))}
+function closePanel(){const b=$('panel');b.hidden=true;b.className='';panelOpen=null;document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'))}
 function openPanel(p){
   if(panelOpen===p){closePanel();return}
-  panelOpen=p;const box=$('panel');box.hidden=false;box.innerHTML='';box.scrollTop=0;
+  panelOpen=p;const box=$('panel');box.hidden=false;box.innerHTML='';box.className='p-'+p;
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.p===p));
-  const x=el('button','btn x','Закрыть');x.type='button';x.onclick=closePanel;box.append(x);
-  ({skills:pSkills,thoughts:pThoughts,phone:pPhone,menu:pMenu})[p](box);
+  const x=el('button','pclose');x.type='button';x.setAttribute('aria-label','Закрыть');x.innerHTML='<span>×</span><small>Esc</small>';x.onclick=closePanel;
+  const inner=el('div','pscroll');inner.onclick=ev=>{if(ev.target===inner)closePanel()};
+  box.append(inner,x);
+  ({skills:pSkills,thoughts:pThoughts,phone:pPhone,menu:pMenu})[p](inner);
+  sfx.click();
 }
 function refresh(){hud();save();if(Game.scenes[S.cur]&&!Game.scenes[S.cur].end){delay=0;renderOpts(S.cur)}}
 function pSkills(box){
@@ -233,27 +244,62 @@ function pSkills(box){
       grid.append(row)}
     box.append(grid)}
 }
+function chips(m){const w=el('span','chips');for(const k in m){const c=el('span','chip'+(m[k]<0?' neg':''),(m[k]>0?'+':'−')+Math.abs(m[k])+' '+SK[k].n);c.style.setProperty('--c',SK[k].c);w.append(c)}return w}
 function pThoughts(box){
   S.newTh=0;hud();
-  box.append(el('h2','','Соты мыслей'),el('p','sub','Мысль можно положить в ячейку и вынашивать. Пока она зреет, она мешает. Когда дозреет — меняет тебя навсегда. Ячеек три.'));
-  const ids=Object.keys(S.th),cook=ids.filter(i=>S.th[i].state==='cook');
-  const slots=el('div','slots');
-  for(let i=0;i<3;i++){const id=cook[i],s=el('div','slot'+(id?' cook':''));
-    if(id){const w=el('div','',THOUGHTS[id].n);w.append(el('small','','ещё шагов: '+S.th[id].left));s.append(w)}else s.textContent='пусто';slots.append(s)}
-  box.append(slots);
-  if(!ids.length)box.append(el('p','sub','Пока ни одной мысли. Они появляются из разговоров.'));
-  for(const id of ids){const t=S.th[id],d=THOUGHTS[id],c=el('div','th'+(t.state==='done'?' done':''));
-    c.append(el('b','',d.n),el('p','',t.state==='done'?d.a:d.q));
-    c.append(el('em','',t.state==='done'?'Итог: '+fmtMods(d.fin)+(d.extra?' · '+d.extra:''):
-      t.state==='cook'?'Зреет. Пока зреет: '+fmtMods(d.tmp)+'. Осталось шагов: '+t.left:'Пока зреет ('+d.time+' шагов): '+fmtMods(d.tmp)+'. Что будет потом — неизвестно.'));
-    if(t.state==='known'&&cook.length<3){const b=el('button','btn','Положить в соту');b.type='button';
-      b.onclick=()=>{t.state='cook';t.left=d.time;sfx.thought(0);refresh();panelOpen=null;openPanel('thoughts')};c.append(el('br'),b)}
-    box.append(c)}
+  const ids=Object.keys(S.th),cook=ids.filter(i=>S.th[i].state==='cook'),done=ids.filter(i=>S.th[i].state==='done');
+  const head=el('div','thhead');head.append(el('h2','','Соты мыслей'),el('p','sub','Мысль кладут в соту и вынашивают. Пока она зреет, она мешает. Когда соту запечатает мёд — мысль станет частью тебя.'));
+  box.append(head);
+  const wrap=el('div','thwrap');
+  /* доска: три рабочие соты в среднем ряду, вокруг запечатанные */
+  const board=el('div','hboard');
+  const cells=[[-1,0,0],[0,0,1],[1,0,2],[-.5,-1,-1],[.5,-1,-1],[-.5,1,-1],[.5,1,-1]];
+  for(const [cx,cy,slot] of cells){const c=el('div','hcell');c.style.setProperty('--x',cx);c.style.setProperty('--y',cy);
+    const inn=el('div','hin');c.append(inn);
+    if(slot<0){c.classList.add('sealed');inn.append(el('span','seal','⬢'))}
+    else{const id=cook[slot];
+      if(id){const t=S.th[id],d=THOUGHTS[id],pct=Math.round((1-t.left/d.time)*100);c.classList.add('cook');
+        const hn=el('div','honey');hn.style.height=Math.max(8,pct)+'%';inn.append(hn);
+        inn.append(el('b','',d.n),el('small','','ещё '+t.left+' '+(t.left===1?'шаг':t.left<5?'шага':'шагов')))}
+      else{c.classList.add('free');inn.append(el('small','','свободная сота'))}}
+    board.append(c)}
+  const side=el('div','hside');side.append(board);
+  const stat=el('div','thstat');stat.append(el('div','lbl','Зреет: '+cook.length+' из 3'),el('div','lbl','Усвоено: '+done.length));side.append(stat);
+  wrap.append(side);
+  const list=el('div','thlist');
+  if(!ids.length)list.append(el('p','sub','Пока ни одной мысли. Они появляются из разговоров: прислушивайся к тому, что задевает.'));
+  const order={cook:0,known:1,done:2};
+  ids.sort((a,b)=>order[S.th[a].state]-order[S.th[b].state]).forEach(id=>{
+    const t=S.th[id],d=THOUGHTS[id],card=el('div','thcard st-'+t.state);
+    const top=el('div','thtop');const k0=Object.keys(d.fin)[0],ic=el('div','thico');if(ART['s_'+k0])ic.style.backgroundImage='url("'+ART['s_'+k0]+'")';else ic.textContent=SK[k0].g;ic.style.setProperty('--c',SK[k0].c);top.append(ic);
+    const tt=el('div');tt.append(el('span','thtag',t.state==='done'?'Усвоена':t.state==='cook'?'Зреет':'Новая мысль'),el('b','',d.n));top.append(tt);card.append(top);
+    card.append(el('p','',t.state==='done'?d.a:d.q));
+    const fx=el('div','thfx');
+    if(t.state==='done'){fx.append(el('span','lbl','Навсегда:'),chips(d.fin));if(d.extra)fx.append(el('span','chip',d.extra))}
+    else{fx.append(el('span','lbl',t.state==='cook'?'Пока зреет:':'Пока зреет ('+d.time+' шагов):'),chips(d.tmp));if(t.state==='known')fx.append(el('span','lbl dim','Что будет потом — неизвестно'))}
+    card.append(fx);
+    if(t.state==='cook'){const bar=el('div','thbar');const i=el('i');i.style.width=Math.round((1-t.left/d.time)*100)+'%';bar.append(i);card.append(bar)}
+    if(t.state==='known'){const b=el('button','btn',cook.length<3?'Положить в соту':'Все соты заняты');b.type='button';
+      if(cook.length<3)b.onclick=()=>{t.state='cook';t.left=d.time;sfx.thought(0);refresh();panelOpen=null;openPanel('thoughts')};else b.disabled=true;card.append(b)}
+    list.append(card)});
+  wrap.append(list);box.append(wrap);
 }
 function pPhone(box){
-  box.append(el('h2','','Чат'),el('p','sub','«Кто пчёлок уважает» · 5 участников · 0 пчёл'));
-  if(!S.chat.length)box.append(el('p','sub','Тихо. Подозрительно тихо.'));
-  for(const [f,t] of S.chat)box.append(f==='sys'?el('p','chatsys',t):chatNode(f,t));
+  const w=el('div','vkwin');
+  const hd=el('div','vkhead');const back=el('button','vkback','‹');back.type='button';back.setAttribute('aria-label','Назад');back.onclick=closePanel;
+  const ga=el('div','vkgava');Object.keys(H).filter(k=>k!==S.hero).slice(0,4).forEach(k=>ga.append(vkAva(k)));
+  const ti=el('div','vktitle');ti.append(el('b','','Кто пчёлок уважает'),el('span','','5 участников'));
+  const ic=el('div','vkicons');ic.innerHTML='<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l5 5"/></svg><svg viewBox="0 0 24 24"><path d="M6 6h12v12H6z" opacity="0"/><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>';
+  hd.append(back,ga,ti,ic);
+  const ms=el('div','vkmsgs');ms.append(el('div','vkdate','сегодня'));
+  if(!S.chat.length)ms.append(el('p','vksys','Здесь пока тихо. Подозрительно тихо.'));
+  S.chat.forEach(([f,t,tm],i)=>{
+    if(f==='sys'){ms.append(el('p','vksys',t));return}
+    const prev=S.chat[i-1],next=S.chat[i+1];
+    ms.append(vkMsg(f,t,tm,!prev||prev[0]!==f,!next||next[0]!==f))});
+  const inp=el('div','vkinput');inp.innerHTML='<svg viewBox="0 0 24 24"><path d="M15.5 6.5l-7 7a2 2 0 0 0 2.8 2.8l7.4-7.4a3.5 3.5 0 0 0-5-5L6.3 11.3a5 5 0 0 0 7 7l6.2-6.2"/></svg><div class="vkfield">Напишите сообщение…</div><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>';
+  w.append(hd,ms,inp);box.append(w);
+  requestAnimationFrame(()=>{ms.scrollTop=ms.scrollHeight});
 }
 function slider(label,val,fn){const w=el('label','mm-sl');w.append(el('span','',label));const i=el('input');i.type='range';i.min=0;i.max=100;i.step=5;i.value=val;
   i.oninput=()=>{ainit();fn(+i.value)};w.append(i);return w}

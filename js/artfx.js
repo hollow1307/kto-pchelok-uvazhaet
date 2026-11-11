@@ -19,24 +19,38 @@ const EMIT={
  try{gl=cv.getContext('webgl',{antialias:false})}catch(e){}
  if(!gl)return;
  const FSA=`precision mediump float;
-uniform sampler2D ta,tb;uniform vec2 R,sa,sb,mouse,look;uniform float T,trip,kal,hit,dusk,fade,blink,eyeA,eyeB;
+uniform sampler2D ta,tb,ti,tz;uniform vec2 R,sa,sb,look;uniform float T,trip,kal,hit,dusk,fade,blink,eyeA,eyeB,hasZ;
 float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
  return mix(mix(h(i),h(i+vec2(1.,0.)),f.x),mix(h(i+vec2(0.,1.)),h(i+vec2(1.,1.)),f.x),f.y);}
 float fbm(vec2 p){float a=.5,s=0.;for(int i=0;i<4;i++){s+=a*n(p);p=mat2(1.6,1.2,-1.2,1.6)*p;a*=.5;}return s;}
 float hexd(vec2 p){p=abs(p);return max(p.x,dot(p,vec2(.5,.866)));}
 vec2 hexg(vec2 p){vec2 r=vec2(1.,1.732),hh=r*.5;vec2 a=mod(p,r)-hh,b=mod(p-hh,r)-hh;return dot(a,a)<dot(b,b)?a:b;}
+/* Глаз на пасеке. Координаты — доли картинки 1600×900: разрез глаза и рамка радужки. */
+vec3 eyeLayer(sampler2D t,vec2 tc,vec3 c){
+ float nx=(tc.x-.505)/.191875,g=1.-nx*nx;if(g<=0.)return c;
+ float px=1./900.,mid=.16333-.013889*nx,top=mid-.14*pow(g,1.15),bot=mid+.10222*pow(g,.8);
+ float open=smoothstep(top-px,top+2.*px,tc.y)*smoothstep(bot+px,bot-2.*px,tc.y);
+ vec2 iu=(tc-vec2(.415,.015556)-look*vec2(.03,.0078))/vec2(.18625,.254444);
+ if(iu.x>0.&&iu.x<1.&&iu.y>0.&&iu.y<1.){vec4 ir=texture2D(ti,iu);c=mix(c,ir.rgb,ir.a*open);}
+ c*=1.-.22*open*(1.-smoothstep(0.,.03,tc.y-top));
+ float lidY=mix(top-2.*px,bot+px,blink);
+ float cover=smoothstep(lidY+1.5*px,lidY-1.5*px,tc.y)*smoothstep(top-8.*px,top-2.*px,tc.y);
+ if(cover>0.){vec3 lid;
+  if(hasZ>.5)lid=texture2D(tz,tc).rgb;
+  else{float k=lidY-tc.y;lid=texture2D(t,vec2(tc.x,top-.005-k*.75)).rgb*mix(.8,1.,smoothstep(0.,.03,k));}
+  c=mix(c,lid,cover);}
+ float lash=exp(-pow((tc.y-lidY-1.5*px)/(3.*px),2.))*smoothstep(top+.004,top+.02,lidY);
+ c*=1.-.6*lash;
+ c*=1.-.3*open*smoothstep(.025,0.,tc.y-lidY)*step(lidY,tc.y)*smoothstep(top+.004,top+.02,lidY);
+ return c;}
 vec3 samp(sampler2D t,vec2 s,vec2 uv,vec2 w,float amp,float eye,out float band){
  vec2 p=(uv-.5)*s;float z=1.05+.025*sin(T*.05);p/=z;p+=vec2(.01*sin(T*.031),.006*cos(T*.027));
- float depth=smoothstep(-.4,.5,p.y);p+=mouse*(.004+.014*depth);
- vec2 ec=vec2(0.,-.365),d0=p-ec;float lim=.1*(1.-d0.x*d0.x/.0361),sh=1.;
- if(eye>.5){float fi=smoothstep(1.,.2,length(d0/vec2(.1,.12)));p-=look*vec2(.024,.04)*fi;}
  p+=w*amp;band=max(abs(p.x),abs(p.y))-.5;
- if(eye>.5&&lim>0.&&abs(d0.y)<lim){float yu=-lim+blink*lim*1.75,yl=lim-blink*lim*.25;
-  if(d0.y<yu){p=ec+vec2(d0.x,-lim-.012-(yu-d0.y)*.3)+w*amp;sh=mix(.45,1.,smoothstep(0.,.016,yu-d0.y));}
-  else if(d0.y>yl){p=ec+vec2(d0.x,lim+.012+(d0.y-yl)*.3)+w*amp;sh=mix(.55,1.,smoothstep(0.,.012,d0.y-yl));}}
  vec2 tc=clamp(p+.5,0.,1.);float ca=.0008+.0016*trip+.012*hit;
- return sh*vec3(texture2D(t,tc+vec2(ca,0.)).r,texture2D(t,tc).g,texture2D(t,tc-vec2(ca,0.)).b);}
+ vec3 c=vec3(texture2D(t,tc+vec2(ca,0.)).r,texture2D(t,tc).g,texture2D(t,tc-vec2(ca,0.)).b);
+ if(eye>.5)c=eyeLayer(t,tc,c);
+ return c;}
 void main(){
  vec2 uv=gl_FragCoord.xy/R;uv.y=1.-uv.y;
  vec2 q=vec2(fbm(uv*3.+T*.05),fbm(uv*3.+vec2(5.2,1.3)-T*.04))-.5;
@@ -63,8 +77,18 @@ void main(){
  gl.bindBuffer(gl.ARRAY_BUFFER,gl.createBuffer());
  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
  const al=gl.getAttribLocation(pr,'a');gl.enableVertexAttribArray(al);gl.vertexAttribPointer(al,2,gl.FLOAT,false,0,0);
- const U={};['ta','tb','R','sa','sb','mouse','look','T','trip','kal','hit','dusk','fade','blink','eyeA','eyeB'].forEach(n=>U[n]=gl.getUniformLocation(pr,n));
- gl.uniform1i(U.ta,0);gl.uniform1i(U.tb,1);
+ const U={};['ta','tb','ti','tz','R','sa','sb','look','T','trip','kal','hit','dusk','fade','blink','eyeA','eyeB','hasZ'].forEach(n=>U[n]=gl.getUniformLocation(pr,n));
+ gl.uniform1i(U.ta,0);gl.uniform1i(U.tb,1);gl.uniform1i(U.ti,2);gl.uniform1i(U.tz,3);
+ /* Слои глаза: белок без радужки, сама радужка, и (если есть) та же картина с закрытым глазом. */
+ const EYE={};
+ function tex(url,rgba,cb){const im=new Image();im.onload=()=>{try{const t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);
+   gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);
+   gl.texImage2D(gl.TEXTURE_2D,0,rgba?gl.RGBA:gl.RGB,rgba?gl.RGBA:gl.RGB,gl.UNSIGNED_BYTE,im);
+   gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+   gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);cb(t)}catch(e){}};im.src=url}
+ tex('assets/web/bg_hub_empty.jpg',0,t=>EYE.empty=t);
+ tex('assets/web/eye_iris.png',1,t=>EYE.iris=t);
+ AFX.loadClosed=url=>tex(url,0,t=>EYE.closed=t);
 
  AFX.load=function(name,url){const im=new Image();
   im.onload=()=>{try{const t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);
@@ -83,8 +107,7 @@ void main(){
  /* Координаты картинки (0..1) → пиксели сцены. Повторяет математику шейдера без «течения». */
  AFX.map=function(ix,iy,still){const W=scene.clientWidth,Hh=scene.clientHeight;if(!AFX.cur)return [ix*W,iy*Hh];
   const s=fit(AFX.cur.ia,W,Hh),T=AFX.T;let px=ix-.5,py=iy-.5;
-  if(!still){const d=Math.min(1,Math.max(0,(py+.4)/.9)),dd=d*d*(3-2*d);
-    px-=.01*Math.sin(T*.031)+AFX.m[0]*(.004+.014*dd);py-=.006*Math.cos(T*.027)+AFX.m[1]*(.004+.014*dd)}
+  if(!still){px-=.01*Math.sin(T*.031);py-=.006*Math.cos(T*.027)}
   const z=still?1.05:1.05+.025*Math.sin(T*.05);
   return [(px*z/s[0]+.5)*W,(py*z/s[1]+.5)*Hh]};
 
@@ -130,30 +153,43 @@ void main(){
        cx.beginPath();cx.ellipse(p[0],p[1],(6+34*f)*k,(2+10*f)*k,0,0,6.3);cx.stroke()}}}
   cx.globalCompositeOperation='source-over'}
 
- document.addEventListener('pointermove',e=>{const b=scene.getBoundingClientRect();
-  AFX.mt=[Math.max(-1,Math.min(1,(e.clientX-b.left)/b.width*2-1)),Math.max(-1,Math.min(1,(e.clientY-b.top)/b.height*2-1))];
-  AFX.mp=[e.clientX-b.left,e.clientY-b.top]});
- let look=[0,0],blinkT=3,blinkV=0;
+ let lastMove=-9;
+ document.addEventListener('pointermove',e=>{const b=scene.getBoundingClientRect();AFX.mp=[e.clientX-b.left,e.clientY-b.top];lastMove=AFX.T});
+ let look=[0,0],wander=[0,0],wanderT=0,blinkIn=2.5,bt=-1;
+ const ease=x=>x*x*(3-2*x);
  const slow=typeof matchMedia!=='undefined'&&matchMedia('(prefers-reduced-motion:reduce)').matches?.15:1;
  let last=0;
  function frame(ts){requestAnimationFrame(frame);
   const dt=Math.min(.05,(ts-last)/1000||0);last=ts;
   if(!AFX.active||!AFX.cur)return;
   AFX.T+=dt*slow*(1+G.trip*.6);AFX.fade=Math.min(1,AFX.fade+dt/1.4);
-  AFX.m[0]+=(AFX.mt[0]-AFX.m[0])*.05;AFX.m[1]+=(AFX.mt[1]-AFX.m[1])*.05;
   const cw=scene.clientWidth,ch=scene.clientHeight,sc=Math.min(1.5,window.devicePixelRatio||1,1700/Math.max(1,cw));
   const w=Math.max(2,Math.round(cw*sc)),hh=Math.max(2,Math.round(ch*sc));
   if(cv.width!==w||cv.height!==hh){cv.width=w;cv.height=hh;gl.viewport(0,0,w,hh);fx.width=w;fx.height=hh}
   const a=AFX.prev||AFX.cur,b=AFX.cur,sa=fit(a.ia,cw,ch),sb=fit(b.ia,cw,ch);
   gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,a.t);gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,b.t);
-  gl.uniform2f(U.R,w,hh);gl.uniform2f(U.sa,sa[0],sa[1]);gl.uniform2f(U.sb,sb[0],sb[1]);gl.uniform2f(U.mouse,AFX.m[0],AFX.m[1]);
+  gl.uniform2f(U.R,w,hh);gl.uniform2f(U.sa,sa[0],sa[1]);gl.uniform2f(U.sb,sb[0],sb[1]);
   // глаз на пасеке: следит за курсором, моргает, к вечеру прикрывается
-  const ep=AFX.map(.5,.135),mp=AFX.mp||[cw/2,ch/2];let lx=(mp[0]-ep[0])/260,ly=(mp[1]-ep[1])/260;const ll=Math.hypot(lx,ly);if(ll>1){lx/=ll;ly/=ll}
-  look[0]+=(lx-look[0])*.08;look[1]+=(ly-look[1])*.08;
-  blinkT-=dt;if(blinkT<0){blinkV=1;blinkT=2.5+Math.random()*5;if(Math.random()<.25)blinkT=.35}
-  blinkV=Math.max(0,blinkV-dt/.16);const bl=Math.max(Math.sin(Math.min(1,blinkV)*3.1416),Math.min(.8,G.dusk*1.15));
-  gl.uniform2f(U.look,look[0],look[1]);gl.uniform1f(U.blink,bl);
-  gl.uniform1f(U.eyeA,a.name==='hub'?1:0);gl.uniform1f(U.eyeB,b.name==='hub'?1:0);
+  const eyeOn=!!(EYE.empty&&EYE.iris);
+  if(eyeOn){
+   // куда смотреть: на курсор, а если мышь давно не двигалась — оглядывает пасеку сам
+   const ep=AFX.map(.505,.15,true);let tx,ty;
+   if(AFX.mp&&AFX.T-lastMove<3){tx=(AFX.mp[0]-ep[0])/(cw*.32);ty=(AFX.mp[1]-ep[1])/(ch*.32)}
+   else{wanderT-=dt;if(wanderT<0){wander=[Math.random()*1.6-.8,Math.random()*1-.3];wanderT=1.2+Math.random()*2.4}tx=wander[0];ty=wander[1]}
+   const L=Math.hypot(tx,ty);if(L>1){tx/=L;ty/=L}
+   const k=1-Math.exp(-dt*9);look[0]+=(tx-look[0])*k;look[1]+=(ty-look[1])*k;
+   // моргание: быстро закрылся, чуть задержался, мягко открылся
+   blinkIn-=dt;if(bt<0&&blinkIn<0){bt=0;blinkIn=2.8+Math.random()*4.5;if(Math.random()<.2)blinkIn=.45}
+   let v=0;if(bt>=0){bt+=dt;const c=.1,hd=.06,o=.22;
+     v=bt<c?ease(bt/c):bt<c+hd?1:bt<c+hd+o?1-ease((bt-c-hd)/o):0;if(bt>=c+hd+o)bt=-1}
+   const base=Math.min(.82,G.dusk*1.1);
+   gl.uniform2f(U.look,look[0],look[1]);gl.uniform1f(U.blink,AFX.blinkHold!=null?AFX.blinkHold:base+(1-base)*v);
+   gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,EYE.iris);
+   if(EYE.closed){gl.activeTexture(gl.TEXTURE3);gl.bindTexture(gl.TEXTURE_2D,EYE.closed)}
+   gl.uniform1f(U.hasZ,EYE.closed?1:0);
+   if(a.name==='hub'){gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,EYE.empty)}
+   if(b.name==='hub'){gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,EYE.empty)}}
+  gl.uniform1f(U.eyeA,eyeOn&&a.name==='hub'?1:0);gl.uniform1f(U.eyeB,eyeOn&&b.name==='hub'?1:0);
   gl.uniform1f(U.T,AFX.T);gl.uniform1f(U.trip,G.trip);gl.uniform1f(U.kal,G.kal);gl.uniform1f(U.hit,G.hit);gl.uniform1f(U.dusk,G.dusk);gl.uniform1f(U.fade,AFX.fade);
   gl.drawArrays(gl.TRIANGLES,0,3);
   fxDraw(dt*slow,AFX.T)}
