@@ -534,3 +534,5 @@ html,body{font-family:"Literata","PT Serif",Georgia,serif}
 .ln.sk.self{background:linear-gradient(90deg,color-mix(in srgb,var(--c) 24%,transparent),transparent 90%);border-left-width:4px}
 .ln.sk.self .sp{letter-spacing:.16em}
 .ln.sk.self{white-space:pre-line}
+
+.seg3{display:flex;gap:6px;flex-wrap:wrap}.seg3 .btn{margin:0;padding:7px 10px}.seg3 .btn.on{background:var(--acc);color:#0b0508}

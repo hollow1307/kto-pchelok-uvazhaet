@@ -312,7 +312,11 @@ function slider(label,val,fn){const w=el('label','mm-sl');w.append(el('span','',
   i.oninput=()=>{ainit();fn(+i.value)};w.append(i);return w}
 function settingsBox(){const d=el('div','mm-set');
   d.append(slider('Общая громкость',A.muted?0:A.vol,v=>{$('volr').value=v;$('volr').oninput({target:$('volr')})}),
-    slider('Музыка',Math.round(A.mvol*100),v=>setBus('mvol',v/100)),slider('Звуки и голоса',Math.round(A.svol*100),v=>setBus('svol',v/100)));return d}
+    slider('Музыка',Math.round(A.mvol*100),v=>setBus('mvol',v/100)),slider('Звуки и голоса',Math.round(A.svol*100),v=>setBus('svol',v/100)));
+  const r=el('div','mm-sl');r.append(el('span','','Мини-игры'));const seg=el('div','seg3');
+  MGD.forEach((n,i)=>{const b=el('button','btn'+(Mini.diff===i?' on':''),n);b.type='button';b.onclick=()=>{Mini.diff=i;try{localStorage.setItem('bees_mgdiff',i)}catch(e){}
+    seg.querySelectorAll('.btn').forEach((x,j)=>x.classList.toggle('on',j===i));sfx.click()};seg.append(b)});
+  r.append(seg);d.append(r);return d}
 function pMenu(box){
   box.append(el('h2','','Меню'),el('p','sub','Игра сохраняется сама в этом браузере. Код ниже переносит прогресс на другое устройство.'));
   box.append(el('div','grp','Звук'),settingsBox(),el('div','grp','Сохранение'));
