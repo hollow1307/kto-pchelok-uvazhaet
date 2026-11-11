@@ -76,7 +76,8 @@ function selfGag(id){return S.hero===id?[['n','Странно. Здесь уже
 function R(n){S.r=Math.max(0,S.r+n);note((n>0?'+':'−')+Math.abs(n)+' уважения пчёл',n<0);G.hit=Math.max(G.hit,n>0?.55:.8);sfx.resp(n,delay-260)}
 function ST(){S.st++;note('Укус. '+S.st+' из 4',true);G.hit=1;sfx.sting(delay-260);
   const a=$('app');a.classList.remove('shake');void a.offsetWidth;a.classList.add('shake')}
-function CR(n){if(n>0){S.cr=Math.min(crMax(),S.cr+n);note('+'+n+' кринж в чате ('+S.cr+' из '+crMax()+')',true);sfx.cringe(delay-260)}
+function CR(n){if(n>0&&has('fail')&&S.cr>=3){note('Кринж не прилип: ты уже умеешь проваливаться');return}
+  if(n>0){S.cr=Math.min(crMax(),S.cr+n);note('+'+n+' кринж в чате ('+S.cr+' из '+crMax()+')',true);sfx.cringe(delay-260)}
   else if(S.cr>0){S.cr=Math.max(0,S.cr+n);note('Кринж отпустил: '+S.cr+' из '+crMax())}}
 function XP(n){S.xp+=n;while(S.xp>=100){S.xp-=100;S.pts++;note('Новое очко навыка. Открой «Голову».');sfx.thought(delay-260)}}
 function TH(id){if(S.th[id])return;S.th[id]={state:'known'};S.newTh=1;note('Новая мысль: «'+THOUGHTS[id].n+'». Открой «Соты мыслей».');sfx.thought(delay-260)}
@@ -201,7 +202,7 @@ function choose(id,o){
   if(o.game){const g=o.game;
     Mini.run(g,bonus(g)[0],ok=>{delay=0;banner(ok,g.sk);sfx[ok?'ok':'fail'](0);
       note(SK[g.sk].n+' · мини-игра · '+(ok?'успех':'провал'),!ok);
-      if(ok||g.red)S.used[key]=1;finish(id,ok?o.ok:o.fail)});
+      if(ok||g.red)S.used[key]=1;if(!ok)failed();finish(id,ok?o.ok:o.fail)});
     return}
   let br=o;
   if(o.check){const ch=o.check,[b,labs]=bonus(ch);
@@ -211,10 +212,11 @@ function choose(id,o){
     for(const v of [a,d])p.append(el('span','die',v));
     p.append(document.createTextNode(SK[ch.sk].n+' +'+skv(ch.sk)+(labs.length?' ('+labs.join(', ')+')':'')+' = '+tot+' против '+ch.dc+' · '+(ok?'успех':'провал')));
     logEl.append(p);G.hit=Math.max(G.hit,.35);sfx.dice(delay-700);sfx[ok?'ok':'fail'](delay-150);banner(ok,ch.sk);
-    if(ok||ch.red)S.used[key]=1;else S.locked[key]=b;
+    if(ok||ch.red)S.used[key]=1;else S.locked[key]=b;if(!ok)failed();
     br=ok?o.ok:o.fail}
   finish(id,br);
 }
+function failed(){S.f.fails=(S.f.fails||0)+1;if(S.f.fails===3)TH('fail')}
 function finish(id,br){
   (br.say||[]).forEach(emit);
   if(br.fx)br.fx(S);
