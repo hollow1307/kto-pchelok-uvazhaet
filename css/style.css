@@ -528,3 +528,9 @@ html,body{font-family:"Literata","PT Serif",Georgia,serif}
 .pclose:hover,.pclose:focus-visible{transform:scale(1.06)}
 .thico{width:52px;height:58px;background:var(--c) center/cover;border:0;color:#0b0508;box-shadow:none;font-size:24px}
 .st-known .thico{filter:grayscale(.55) brightness(.9)}
+
+/* личный голос героя */
+.ski.glyph{display:grid;place-items:center;background:var(--c);color:#0b0508;font:700 21px/1 var(--disp);clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);border:0;box-shadow:none}
+.ln.sk.self{background:linear-gradient(90deg,color-mix(in srgb,var(--c) 24%,transparent),transparent 90%);border-left-width:4px}
+.ln.sk.self .sp{letter-spacing:.16em}
+.ln.sk.self{white-space:pre-line}
