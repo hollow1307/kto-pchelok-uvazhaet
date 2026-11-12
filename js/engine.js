@@ -21,7 +21,18 @@ function adopt(o){fresh();for(const k in o)S[k]=o[k]}
 
 /* ---------- вывод ---------- */
 function el(tag,cls,txt){const e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e}
-function put(e,step){e.style.animationDelay=delay+'ms';delay+=step==null?260:step;logEl.append(e)}
+function put(e,step){e.style.animationDelay=delay+'ms';delay+=step==null?260:step;logEl.append(e);if(split===0&&isPhone()){$('split').classList.add('unread');$('splitLbl').textContent='новый текст'}}
+/* ---------- делитель картина/текст на телефоне ---------- */
+let split=1;try{const v=parseInt(localStorage.getItem('bees_split'),10);if(v>=0&&v<=2)split=v}catch(e){}
+function isPhone(){return innerWidth<=820||innerHeight<=520}
+function land(){return innerWidth>innerHeight}
+function setSplit(v){split=Math.max(0,Math.min(2,v));const a=$('app');a.classList.remove('split-0','split-1','split-2');a.classList.add('split-'+split);
+  try{localStorage.setItem('bees_split',split)}catch(e){}
+  if(split>0){$('split').classList.remove('unread');$('splitLbl').textContent=''}
+  $('splitPic').disabled=split===0;$('splitTxt').disabled=split===2;
+  $('splitPic').textContent=land()?'▶':'▼';$('splitTxt').textContent=land()?'◀':'▲';
+  setTimeout(()=>{placePins();dispatchEvent(new Event('bees-split'))},380)}
+addEventListener('resize',()=>setSplit(split));
 function who(k){
   if(k==='you')return ['Ты','var(--acc)'];
   if(SK[k])return [SK[k].n,SK[k].c];
@@ -99,11 +110,16 @@ function showPortrait(k){const p=$('portrait');
     p.querySelector('.nm').textContent=who(k)[0];p.classList.remove('off');p.dataset.k=k}
   else{p.classList.add('off');p.dataset.k=''}}
 function showBg(){const b=S.bg&&ART['bg_'+S.bg];
-  if(b){$('bgimg').style.backgroundImage='url("'+b+'")';$('scene').classList.add('art')}else $('scene').classList.remove('art');
-  if(AFX.set)AFX.set(b?S.bg:null)}
+  if(b){$('bgimg').style.backgroundImage='url("'+b+'")';$('scene').classList.add('art');sceneReady()}else $('scene').classList.remove('art');
+  if(AFX.set)AFX.set(b?S.bg:null);
+  if(b&&AFX.active)setTimeout(panHint,600)}
+function sceneReady(){$('scene').classList.remove('loading')}
+setTimeout(sceneReady,7000);
+function panHint(){const h=$('panhint');if(!h||$('app').classList.contains('menu')||!AFX.phone()||AFX.visible()>.85)return;try{if(localStorage.getItem('bees_panhint'))return}catch(e){}
+  h.classList.add('on');setTimeout(()=>h.classList.remove('on'),4200)}
 function placePins(){document.querySelectorAll('#pins .pin').forEach(p=>{
   if(p.dataset.ix&&AFX.active){const q=AFX.map(+p.dataset.ix,+p.dataset.iy,true),W=$('scene').clientWidth,hw=p.offsetWidth/2+8;
-    p.style.left=Math.max(hw,Math.min(W-hw,q[0]))+'px';p.style.top=q[1]+'px'}
+    p.style.left=Math.max(hw,Math.min(W-hw,q[0]))+'px';p.style.top=q[1]+'px';p.classList.toggle('offL',q[0]<hw-4);p.classList.toggle('offR',q[0]>W-hw+4)}
   else{p.style.left=p.dataset.x+'%';p.style.top=p.dataset.y+'%'}})}
 addEventListener('resize',placePins);
 function artReady(){if(!curN)return;showBg();placePins();if(S.hero)hud();const k=$('portrait').dataset.k;if(k)showPortrait(k)}

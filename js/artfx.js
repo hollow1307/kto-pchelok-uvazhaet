@@ -1,7 +1,7 @@
 /* Живые арты: фон-картина рисуется через WebGL (течёт, дышит, реагирует на мышь),
    поверх — частицы: пчёлы, пар, дым, капли, пыль. Если текстуру загрузить нельзя
    (например, при открытии файла двойным кликом), остаётся обычная картинка. */
-const AFX={tex:{},cur:null,prev:null,fade:1,want:null,m:[0,0],mt:[0,0],active:false,T:0};
+const AFX={pan:0,phone:()=>innerWidth<=820||innerHeight<=520,tex:{},cur:null,prev:null,fade:1,want:null,m:[0,0],mt:[0,0],active:false,T:0};
 /* Эмиттеры в координатах картинки (0..1). */
 const EMIT={
  clover:[['motes',.5,.45,.5,.4,30],['bees',.45,.4,.4,.25,5]],
@@ -19,7 +19,7 @@ const EMIT={
  try{gl=cv.getContext('webgl',{antialias:false})}catch(e){}
  if(!gl)return;
  const FSA=`precision mediump float;
-uniform sampler2D ta,tb,ti,tz;uniform vec2 R,sa,sb,look;uniform float T,trip,kal,hit,dusk,fade,blink,eyeA,eyeB,hasZ;
+uniform sampler2D ta,tb,ti,tz;uniform vec2 R,sa,sb,look;uniform float pan,T,trip,kal,hit,dusk,fade,blink,eyeA,eyeB,hasZ;
 float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
  return mix(mix(h(i),h(i+vec2(1.,0.)),f.x),mix(h(i+vec2(0.,1.)),h(i+vec2(1.,1.)),f.x),f.y);}
@@ -45,7 +45,7 @@ vec3 eyeLayer(sampler2D t,vec2 tc,vec3 c){
  c*=1.-.3*open*smoothstep(.025,0.,tc.y-lidY)*step(lidY,tc.y)*smoothstep(top+.004,top+.02,lidY);
  return c;}
 vec3 samp(sampler2D t,vec2 s,vec2 uv,vec2 w,float amp,float eye,out float band){
- vec2 p=(uv-.5)*s;float z=1.05+.025*sin(T*.05);p/=z;p+=vec2(.01*sin(T*.031),.006*cos(T*.027));
+ vec2 p=(uv-.5)*s;float z=1.05+.025*sin(T*.05);p/=z;p+=vec2(.01*sin(T*.031),.006*cos(T*.027));p.x+=pan*.5*max(0.,1.-s.x/z);
  p+=w*amp;band=max(abs(p.x),abs(p.y))-.5;
  vec2 tc=clamp(p+.5,0.,1.);float ca=.0008+.0016*trip+.012*hit;
  vec3 c=vec3(texture2D(t,tc+vec2(ca,0.)).r,texture2D(t,tc).g,texture2D(t,tc-vec2(ca,0.)).b);
@@ -77,7 +77,7 @@ void main(){
  gl.bindBuffer(gl.ARRAY_BUFFER,gl.createBuffer());
  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
  const al=gl.getAttribLocation(pr,'a');gl.enableVertexAttribArray(al);gl.vertexAttribPointer(al,2,gl.FLOAT,false,0,0);
- const U={};['ta','tb','ti','tz','R','sa','sb','look','T','trip','kal','hit','dusk','fade','blink','eyeA','eyeB','hasZ'].forEach(n=>U[n]=gl.getUniformLocation(pr,n));
+ const U={};['ta','tb','ti','tz','R','sa','sb','look','pan','T','trip','kal','hit','dusk','fade','blink','eyeA','eyeB','hasZ'].forEach(n=>U[n]=gl.getUniformLocation(pr,n));
  gl.uniform1i(U.ta,0);gl.uniform1i(U.tb,1);gl.uniform1i(U.ti,2);gl.uniform1i(U.tz,3);
  /* Слои глаза: белок без радужки, сама радужка, и (если есть) та же картина с закрытым глазом. */
  const EYE={};
@@ -103,13 +103,15 @@ void main(){
   if(AFX.cur!==x){AFX.prev=AFX.cur||x;AFX.cur=x;AFX.fade=AFX.prev===x?1:0;fxInit(name)}
   if(!AFX.active){AFX.active=true;scene.classList.add('gltex');if(typeof placePins==='function')placePins()}};
  const fit=(ia,W,Hh)=>{const ra=W/Hh,cover=ra>ia?[1,ia/ra]:[ra/ia,1],contain=ra>ia?[ra/ia,1]:[1,ia/ra];
-  const k=ra<1?.9:ra<1.25?.6:.35;return [cover[0]*k+contain[0]*(1-k),cover[1]*k+contain[1]*(1-k)]};
+  const k=AFX.phone()?1:ra<1?.9:ra<1.25?.6:.35;return [cover[0]*k+contain[0]*(1-k),cover[1]*k+contain[1]*(1-k)]};
  /* Координаты картинки (0..1) → пиксели сцены. Повторяет математику шейдера без «течения». */
  AFX.map=function(ix,iy,still){const W=scene.clientWidth,Hh=scene.clientHeight;if(!AFX.cur)return [ix*W,iy*Hh];
   const s=fit(AFX.cur.ia,W,Hh),T=AFX.T;let px=ix-.5,py=iy-.5;
   if(!still){px-=.01*Math.sin(T*.031);py-=.006*Math.cos(T*.027)}
-  const z=still?1.05:1.05+.025*Math.sin(T*.05);
+  const z=still?1.05:1.05+.025*Math.sin(T*.05);px-=AFX.pan*.5*Math.max(0,1-s[0]/z);
   return [(px*z/s[0]+.5)*W,(py*z/s[1]+.5)*Hh]};
+ /* Можно ли листать: какая доля ширины картины видна. */
+ AFX.visible=function(){if(!AFX.cur)return 1;return fit(AFX.cur.ia,scene.clientWidth,scene.clientHeight)[0]/1.05};
 
  /* ---------- частицы ---------- */
  const cx=fx.getContext('2d');let ems=[];
@@ -190,8 +192,20 @@ void main(){
    if(a.name==='hub'){gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,EYE.empty)}
    if(b.name==='hub'){gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,EYE.empty)}}
   gl.uniform1f(U.eyeA,eyeOn&&a.name==='hub'?1:0);gl.uniform1f(U.eyeB,eyeOn&&b.name==='hub'?1:0);
+  gl.uniform1f(U.pan,AFX.pan);
+  if(typeof placePins==='function'&&AFX.pinsDirty!==AFX.pan){AFX.pinsDirty=AFX.pan;placePins()}
   gl.uniform1f(U.T,AFX.T);gl.uniform1f(U.trip,G.trip);gl.uniform1f(U.kal,G.kal);gl.uniform1f(U.hit,G.hit);gl.uniform1f(U.dusk,G.dusk);gl.uniform1f(U.fade,AFX.fade);
   gl.drawArrays(gl.TRIANGLES,0,3);
   fxDraw(dt*slow,AFX.T)}
  requestAnimationFrame(frame);
+})();
+
+/* Листание картины пальцем или мышью, если она шире кадра. */
+(function(){const sc=$('scene');let x0=null,p0=0,moved=false;
+ const skip=t=>t.closest('button,.pin,.pcard,#panel,#mg,#hud,input,textarea,#mainmenu,#split');
+ sc.addEventListener('pointerdown',e=>{if(skip(e.target)||!AFX.active)return;const v=AFX.visible();if(v>.97)return;x0=e.clientX;p0=AFX.pan;moved=false});
+ addEventListener('pointermove',e=>{if(x0==null)return;const dx=e.clientX-x0;if(Math.abs(dx)>6)moved=true;if(!moved)return;
+   const v=AFX.visible(),W=sc.clientWidth;AFX.pan=Math.max(-1,Math.min(1,p0-dx/W*v/Math.max(.001,(1-v)/2)/1));
+   const h=$('panhint');if(h&&h.classList.contains('on')){h.classList.remove('on');try{localStorage.setItem('bees_panhint','1')}catch(err){}}});
+ addEventListener('pointerup',()=>{x0=null});addEventListener('pointercancel',()=>{x0=null});
 })();
