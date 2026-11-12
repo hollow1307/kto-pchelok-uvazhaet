@@ -29,17 +29,15 @@ function who(k){
   if(k==='guard')return ['Стражница','#ffd84a'];
   if(k==='queen')return ['Матка','#f0b93e'];
   if(k==='phone')return ['Телефон','#7CFC9A'];
-  if(k==='self'&&S.hero)return [HVOICE[S.hero].n,HVOICE[S.hero].c];
   return [k,'#efe6d0'];
 }
 function say(k,t,passive){
   const p=el('p','ln '+(k==='n'?'n':k==='you'?'you':SK[k]?'sk':k==='phone'?'phone':''));
-  if(k==='self'&&S.hero){const v=HVOICE[S.hero];p.className='ln sk hasico self';p.style.setProperty('--c',v.c);sfx.voice('hive',delay);p.append(el('span','ski glyph',v.g))}
   if(SK[k]){p.style.setProperty('--c',SK[k].c);sfx.voice(k,delay);
     if(ART['s_'+k]){const im=el('img','ski');im.src=ART['s_'+k];im.alt='';p.append(im);p.classList.add('hasico')}}
   if(k!=='n'){const [nm,c]=who(k);const s=el('span','sp',nm+(passive?'':' —'));s.style.color=c;p.append(s);
     if(passive)p.append(el('span','ptag','[чутьё '+passive+'] —'))}
-  p.append(document.createTextNode(k==='self'?t.split(' / ').join('\n'):t));put(p);
+  p.append(document.createTextNode(t));put(p);
 }
 function gtime(){const m=Math.max(9*60+12+(S.t||0)*17,(S.f.chatMin||0)+1);S.f.chatMin=m;return String(Math.floor(m/60)%24).padStart(2,'0')+':'+String(m%60).padStart(2,'0')}
 function chatMsg(from,text){
@@ -180,9 +178,6 @@ function go(id,keep){
   stage(n);
   if(n.end)logEl.append(el('div','sep'));
   (typeof n.text==='function'?n.text(S):n.text||[]).forEach(emit);
-  if(S.hero&&HLINES[S.hero]){const L=HLINES[S.hero];
-    if(S.hero==='misha'){if(S.f.hvq){say('self',S.f.hvq);S.f.hvq=null}if(L[id]&&!S.f['hv_'+id]){S.f['hv_'+id]=1;S.f.hvq=L[id]}}
-    else if(L[id]&&!S.f['hv_'+id]){S.f['hv_'+id]=1;say('self',L[id])}}
   S.seen[id]=(S.seen[id]||0)+1;
   if(!n.end)tickThoughts();
   if(n.end){const h=el('p','end ln','Финал: '+n.end);sfx.end(n.pal,delay);put(h,300);
@@ -250,8 +245,6 @@ function pSkills(box){
         b.onclick=()=>{S.pts--;S.sk[k]++;sfx.ok(0);refresh();panelOpen=null;openPanel('skills')};row.append(b)}
       grid.append(row)}
     box.append(grid)}
-  if(S.hero){const v=HVOICE[S.hero];box.append(el('div','grp','Только у тебя'));const g=el('div','skgrid'),row=el('div','skill');row.style.setProperty('--c',v.c);
-    const tx=el('div');tx.append(el('b','',v.n),el('span','',v.d));row.append(el('div','hexv',v.g),tx);g.append(row);box.append(g)}
 }
 function chips(m){const w=el('span','chips');for(const k in m){const c=el('span','chip'+(m[k]<0?' neg':''),(m[k]>0?'+':'−')+Math.abs(m[k])+' '+SK[k].n);c.style.setProperty('--c',SK[k].c);w.append(c)}return w}
 function pThoughts(box){
