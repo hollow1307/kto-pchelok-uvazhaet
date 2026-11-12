@@ -38,14 +38,14 @@ const Mini={active:false,cur:null,diff:1,
   let pos=0,ready=false,i=0;
   const press=d=>{if(!ready)return;
     if(d!==seq[pos]){big.textContent='✕';end(false);return}
-    pips.children[pos].className='on';big.textContent=A[d];tone(520+pos*90,.15,'triangle',.1);
+    pips.children[pos].className='on';big.textContent=A[d];big.className='mgbig';tone(520+pos*90,.15,'triangle',.1);
     if(++pos>=len)end(true)};
   'LURD'.split('').forEach(d=>{const b=document.createElement('button');b.type='button';b.className='btn';b.textContent=A[d];
     b.setAttribute('aria-label',{L:'влево',U:'вверх',R:'вправо',D:'вниз'}[d]);b.style.gridArea=d;b.onclick=()=>press(d);pad.append(b)});pad.classList.add('cross');
   area.append(big,pips,pad);
   const iv=setInterval(()=>{
     if(i<len){big.textContent=A[seq[i]];big.className='mgbig';void big.offsetWidth;big.className='mgbig pulse d'+seq[i];tone(330+i*60,.2,'sine',.09);i++}
-    else{clearInterval(iv);big.textContent='Повтори';ready=true;cur.ready=true;
+    else{clearInterval(iv);big.textContent='Повтори';big.className='mgbig word';ready=true;cur.ready=true;
       const lim=(len*(.95-.06*Mini.diff)+1.2)*1000,t0=performance.now(),bar=document.createElement('div');bar.className='mgbar';bar.append(document.createElement('i'));area.append(bar);
       const tv=setInterval(()=>{const f=1-(performance.now()-t0)/lim;bar.firstChild.style.width=Math.max(0,f*100)+'%';if(f<=0){clearInterval(tv);if(Mini.active)end(false)}},50);stop.push(()=>clearInterval(tv))}},gap);
   const kd=e=>{if(K[e.key]){e.preventDefault();press(K[e.key])}};

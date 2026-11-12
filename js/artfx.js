@@ -103,7 +103,7 @@ void main(){
   if(AFX.cur!==x){AFX.prev=AFX.cur||x;AFX.cur=x;AFX.fade=AFX.prev===x?1:0;fxInit(name)}
   if(!AFX.active){AFX.active=true;scene.classList.add('gltex');if(typeof placePins==='function')placePins()}};
  const fit=(ia,W,Hh)=>{const ra=W/Hh,cover=ra>ia?[1,ia/ra]:[ra/ia,1],contain=ra>ia?[ra/ia,1]:[1,ia/ra];
-  return [cover[0]*.35+contain[0]*.65,cover[1]*.35+contain[1]*.65]};
+  const k=ra<1?.9:ra<1.25?.6:.35;return [cover[0]*k+contain[0]*(1-k),cover[1]*k+contain[1]*(1-k)]};
  /* Координаты картинки (0..1) → пиксели сцены. Повторяет математику шейдера без «течения». */
  AFX.map=function(ix,iy,still){const W=scene.clientWidth,Hh=scene.clientHeight;if(!AFX.cur)return [ix*W,iy*Hh];
   const s=fit(AFX.cur.ia,W,Hh),T=AFX.T;let px=ix-.5,py=iy-.5;

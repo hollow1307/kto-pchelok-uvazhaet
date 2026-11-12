@@ -531,3 +531,79 @@ html,body{font-family:"Literata","PT Serif",Georgia,serif}
 
 
 .seg3{display:flex;gap:6px;flex-wrap:wrap}.seg3 .btn{margin:0;padding:7px 10px}.seg3 .btn.on{background:var(--acc);color:#0b0508}
+
+/* ---------- v8: телефон ---------- */
+#app{height:100dvh}
+button{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.mgbig.word{font-size:26px;letter-spacing:.04em;text-transform:uppercase}
+#log{overflow-x:hidden}
+.opt{overflow-wrap:anywhere}
+@media (max-width:820px){
+  #app{grid-template-rows:36dvh 1fr}
+  #app.menu{grid-template-rows:1fr 0}
+  /* шапка в одну строку: вкладки и кнопка звука */
+  #dlg header{flex-direction:row;align-items:stretch;gap:0;padding:0;border-bottom:1px solid rgba(255,255,255,.1)}
+  #top{order:2;padding:0 8px;border-left:1px solid rgba(255,255,255,.1)}
+  #who,#volr,#volv{display:none}
+  #vol{display:flex;align-items:center}
+  #snd{width:40px;height:40px;border:0;background:none;font-size:18px}
+  #tabs{flex:1;margin:0;border:0}
+  .tab{padding:12px 4px}.tab svg{width:22px;height:22px}
+  .tab .bdg{top:4px;right:calc(50% - 22px)}
+  /* показатели: одна компактная строка без подписей */
+  #hud{top:8px;left:8px;max-width:calc(100% - 16px)}
+  .hudbar{flex-wrap:nowrap;transform:none;border-left-width:3px}
+  .seg{padding:5px 9px;gap:0;justify-content:center}
+  .seg .lbl{display:none}
+  .seg-r{padding-left:6px;gap:0}
+  #medal{width:32px;height:36px}#resp{font-size:17px}
+  .seg:last-child{display:none}.seg:nth-last-child(2){border-right:0}
+  #daytrack{width:64px;margin:0 7px}
+  #stings i{width:9px;height:14px}#cringe i{width:8px;height:14px}.pips{gap:4px;min-height:14px}
+  #place{left:10px;bottom:8px;right:96px}#psub{font-size:9px;padding:4px 6px}
+  #ptitle{font-size:26px;margin-top:5px}
+  #portrait{width:78px;right:8px;bottom:8px}
+  /* лента и ответы */
+  #log{padding:14px 14px 34px;font-size:16.5px}
+  .opt{font-size:16.5px;padding:10px 6px 10px 28px}
+  .opt .ck{white-space:normal;display:inline-block;max-width:100%;margin:0 6px 4px 0;line-height:1.25}
+  .ln.sk.hasico{padding-left:52px}.ski{width:34px;height:34px}
+  /* выбор героя: две строки карточек */
+  #picker{flex-wrap:wrap;gap:6px;top:54%}
+  .pcard{flex:0 0 calc(20% - 5px);max-width:none}
+  .pcard b{font-size:9px;line-height:1.1;padding:4px 4px 5px;min-height:2.4em}
+  .pin span{font-size:9px;padding:4px 6px 3px}
+  /* главное меню */
+  #mainmenu{padding:4vh 22px;background:linear-gradient(180deg,rgba(7,5,10,.55),rgba(7,5,10,.35) 35%,rgba(7,5,10,.9) 70%)}
+  .mm-logo{font-size:15vw}.mm-tag{margin:16px 0 12px}
+  .mm-btn{font-size:24px;padding:13px 14px}
+  .mm-sub{min-height:0}
+  /* панели и мини-игры */
+  .skgrid{grid-template-columns:1fr}
+  .thcard b{font-size:16px}
+  #mg{padding:10px}.mgcard{padding:12px 12px 14px}
+  .mgpad .btn{min-width:72px;padding:16px 20px}
+  .mgfield{height:240px}
+  .end{font-size:36px}
+}
+/* телефон боком: низкий экран */
+@media (max-height:520px) and (min-width:821px){
+  .seg{padding:5px 10px;gap:4px}.seg .lbl.dim,.seg:last-child{display:none}
+  #medal{width:36px;height:40px}#resp{font-size:19px}
+  #ptitle{font-size:30px}#portrait{width:110px}
+  #dlg header{padding:6px 14px 0;gap:6px}#who{display:none}#top{justify-content:flex-end}#tabs{margin:0 -14px}.tab{padding:6px 4px 5px}.tab span{display:none}
+  #log{padding:10px 16px 26px;font-size:15.5px}
+  .mgcard{padding:10px 14px}.mghead{margin-bottom:8px;padding-bottom:8px}.mgico{width:54px;height:54px}.mghead{grid-template-columns:54px 1fr}
+  .mgbig{width:96px;height:108px;font-size:40px}.mgfield{height:150px}.mgboard{width:min(100%,250px)}
+  .mm-logo{font-size:15vh}.mm-btn{font-size:20px;padding:7px 14px}.mm-tag{margin:10px 0 8px}
+  .pcard span{display:none}
+}
+@media (max-height:520px) and (min-width:821px){
+  #hud{top:6px;left:6px}.hudbar{flex-wrap:nowrap;transform:none}
+  .seg .lbl{display:none}.seg{padding:4px 9px;gap:0}.seg-r{gap:0;padding-left:6px}
+  #daytrack{width:70px;margin:0 7px}
+  #place{left:10px;bottom:6px;right:130px}#psub{font-size:9px;padding:3px 6px}#ptitle{font-size:22px;margin-top:4px;white-space:nowrap}
+  .pin.thumb .pico{width:44px;height:50px}.pin.thumb .pico i{width:38px;height:44px}.pin span{font-size:9px;padding:3px 6px}
+  #mg{place-items:start center;padding:8px}#mg .mghead h2{font-size:22px}#mg .mghead .sub{font-size:12.5px}
+  #picker{top:56%}.pcard b{font-size:10px;padding:5px;min-height:2.3em}
+}
